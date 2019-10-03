@@ -10,50 +10,84 @@ const connection = mysql.createConnection({
   database: "bamazon"
 });
 
-connection.connect(err =>{
+connection.connect(err => {
   if (err) throw err;
-  start()
-  connection.end()
-})
+  start();
+  // connection.end()
+});
 
 const start = () => {
   var table = new Table({
-    head: ['Product ID', 'Item', 'Catagory', 'Price', 'Remaining Stock']
-  // , colWidths: [100, 200]
-});
- 
-  connection.query("SELECT * FROM products",(err,products)=>{
-    if (err) throw err;
-    // table is an Array, so you can `push`, `unshift`, `splice` and friends
-    // table.push(products
-    // );
-    for (let i = 0; i < products.length; i ++){
-      table.push([products[i].item_id,products[i].product_name,products[i].department_name,`$ ${products[i].price}`,products[i].stock_quantity])
-    }
-     
-    console.log(table.toString());
-    const choices = [];
-    for (let i = 0; i < products.length;i++){
-      const id = products[i].item_id
-      const product_name = products[i].product_name
-      const price = products[i].price
-      choices.push(`${id} ${product_name} $${price}`)
-    }
-    inquirer.prompt([{
-      name:"input",
-      message:"Please input product ID.",
-      type:"input",
-      validate: function(value){
-        if (!isNaN(value)){
-          if (value <= products.length && value >0){
-            return true
-          }
-        } 
-        return false
-      }
-    }]).then(data =>{
-      console.log(data)
-    })
+    head: ["Product ID", "Item", "Catagory", "Price", "Remaining Stock"]
+    // , colWidths: [100, 200]
+  });
 
-  })
-}
+  connection.query("SELECT * FROM products", (err, products) => {
+    if (err) throw err;
+    for (let i = 0; i < products.length; i++) {
+      table.push([
+        products[i].item_id,
+        products[i].product_name,
+        products[i].department_name,
+        `$ ${products[i].price.toFixed(2)}`,
+        products[i].stock_quantity
+      ]);
+    }
+
+    console.log(table.toString());
+    inquirer
+      .prompt([
+        {
+          name: "id",
+          message: "Please input product ID.",
+          type: "input",
+          validate: function(value) {
+            if (!isNaN(value)) {
+              if (value <= products.length && value > 0) {
+                return true;
+              }
+            }
+            return false;
+          }
+        }
+      ])
+      .then(data => {
+        const selectedItem = products[data.id - 1];
+        inquirer
+          .prompt([
+            {
+              name: "quantity",
+              message: `How many ${selectedItem.product_name} do you want to buy?`,
+              type: "input",
+              validate: function(value) {
+                if (!isNaN(value)) {
+                  return true;
+                }
+                return false;
+              }
+            }
+          ])
+          .then(data => {
+            if (data.quantity > selectedItem.stock_quantity) {
+              console.log("Insufficient quantity!");
+              return;
+            }
+            const totalCost = data.quantity * selectedItem.price;
+            console.log(`This purchase costed $ ${totalCost.toFixed(2)}!`);
+            const newQuantity = selectedItem.stock_quantity - data.quantity;
+            connection.query(
+              "UPDATE products SET ? WHERE ?",
+              [
+                { stock_quantity: newQuantity },
+                { item_id: selectedItem.item_id }
+              ],
+              (err, res) => {
+                if (err) throw err;
+                console.log("transaction complete!");
+              }
+            );
+            connection.end()
+          });
+      });
+  });
+};
