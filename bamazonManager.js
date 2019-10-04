@@ -39,6 +39,7 @@ const start = () => {
             displayTable()
           break;
         case "View Low Inventory":
+            lowInventory()
           break;
         case "Add to Inventory":
           break;
@@ -77,3 +78,26 @@ const displayTable = () => {
     start()
   });
 };
+
+const lowInventory = () => {
+    var table = new Table({
+      head: ["Product ID", "Item", "Catagory", "Price", "Remaining Stock"]
+      // , colWidths: [100, 200]
+    });
+  
+    connection.query("SELECT * FROM products WHERE stock_quantity BETWEEN 0 AND 5", (err, products) => {
+      if (err) throw err;
+      for (let i = 0; i < products.length; i++) {
+        table.push([
+          products[i].item_id,
+          products[i].product_name,
+          products[i].department_name,
+          `$ ${products[i].price.toFixed(2)}`,
+          products[i].stock_quantity
+        ]);
+      }
+  
+      console.log(table.toString());
+      start()
+    });
+  };
