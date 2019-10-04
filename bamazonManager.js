@@ -217,7 +217,7 @@ const newProduct = () => {
         .then(data => {
               connection.query(
                 "INSERT INTO products (product_name,department_name,price,stock_quantity) VALUE (?)",
-               [[data.product_name,data.department_name,data.product_name,data.stock_quantity]],
+               [[data.product_name,data.department_name,data.price,data.stock_quantity]],
                 (err, res) => {
                   if (err) throw err;
                   console.log("Inventory Updated !");
